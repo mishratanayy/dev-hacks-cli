@@ -142,10 +142,6 @@ def __main__():
 
     if args.build_maestro_only:
         build_maestro_without_test()
-    print(args.format)
-    print(args.build_maestro_only)
-    print(args.build_mmshare_without_make)
-    print(args.build_mmshare_python)
 
 
 if __name__ == '__main__':
