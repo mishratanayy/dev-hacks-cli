@@ -102,14 +102,14 @@ def build_mmshare_without_make():
 def __main__():
     parser = ArgumentParser(
         prog="best_script.py",
-        description="This provides basic hacks that you can perform to"
-        "speed up"
+        description="This provides basic hacks that you can perform to "
+        "speed up "
         "your mmshare and maestro-src development time",
         add_help=True)
     parser.add_argument(
         "-f",
         "--format",
-        help="Format the modified files, you should pass the repo first"
+        help="Format the modified files, you should pass the repo first "
         "and then diff generator string for example "
         "[-f maestro-src \"HEAD~1 HEAD\"]",
         nargs=2)
@@ -118,7 +118,7 @@ def __main__():
                         action="store_true",
                         default=False)
     parser.add_argument("--build-mmshare-python",
-                        help="Build mmshare python modules and test without"
+                        help="Build mmshare python modules and test without "
                         "actually building whole mmshare",
                         action="store_true",
                         default=False)
