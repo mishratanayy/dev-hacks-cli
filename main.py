@@ -35,6 +35,8 @@ def get_mmshare_build_dir():
         raise ValueError("No mmshare build found")
     return path[0]
 
+def _get_repo_path(repo):
+    return os.path.join(SCHRODINGER_SRC, repo)
 
 def _is_valid_repo(repo):
     full_path = os.path.join(SCHRODINGER_SRC, repo)
@@ -44,9 +46,10 @@ def _is_valid_repo(repo):
 def _get_modified_files(repo, diff_generator):
     if not _is_valid_repo(repo):
         raise ValueError(f"Invalid repo: {repo}")
-    git_command = f"git diff --name-only {diff_generator}"
-    output = subprocess.check_output(git_command.split())
-    return output.decode("utf-8").strip().split("\n")
+    with cd_dir(_get_repo_path(repo)):
+        git_command = f"git diff --name-only {diff_generator}"
+        output = subprocess.check_output(git_command.split())
+        return output.decode("utf-8").strip().split("\n")
 
 
 def _is_clang_supported(file):
