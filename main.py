@@ -82,14 +82,15 @@ def format_files_from_repo(repo, diff_generator="HEAD"):
     clang_supported_files = [
         file for file in modified_files if _is_clang_supported(file)
     ]
-    if yapf_supported_files:
-        yapf_command = YAPF_CMD + yapf_supported_files
-        subprocess.call(yapf_command)
-        flake_command = FLAKE_CMD + yapf_supported_files
-        subprocess.call(flake_command)
-    if clang_supported_files:
-        clang_command = CLANG_CMD + clang_supported_files
-        subprocess.call(clang_command)
+    with cd_dir(_get_repo_path(repo)):
+        if yapf_supported_files:
+            yapf_command = YAPF_CMD + yapf_supported_files
+            subprocess.call(yapf_command)
+            flake_command = FLAKE_CMD + yapf_supported_files
+            subprocess.call(flake_command)
+        if clang_supported_files:
+            clang_command = CLANG_CMD + clang_supported_files
+            subprocess.call(clang_command)
 
 
 def build_mmshare_python():
