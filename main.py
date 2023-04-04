@@ -12,10 +12,21 @@ REPOS = [MMSHARE, MAESTRO_SRC]
 CLANG_CMD = ["clang-format", "--style=file", "-i"]
 YAPF_CMD = ["yapf", "-i"]
 FLAKE_CMD = ["flake8"]
-BUILD_TYPE = "debug"  # or "optimized"
+BUILD_TYPE = os.getenv("BUILD_TYPE")
 WAFBUILD = f"waf configure build install --build={BUILD_TYPE}"
 MMSHARE_SRC_PATH = os.path.join(SCHRODINGER_SRC, MMSHARE)
 MAESTRO_SRC_PATH = os.path.join(SCHRODINGER_SRC, MAESTRO_SRC)
+
+
+def _verify_environment():
+    if not SCHRODINGER:
+        raise RuntimeError("$SCHRODINGER not defined")
+    if not SCHRODINGER_SRC:
+        raise RuntimeError("$SCHRODINGER_SRC not defined")
+    if not BUILD_TYPE or BUILD_TYPE not in ['debug', 'optimzed']:
+        raise RuntimeError(
+            "$BUILD_TYPE not defined, it should be set to 'debug' or 'optimized'"
+        )
 
 
 @contextlib.contextmanager
@@ -35,8 +46,10 @@ def get_mmshare_build_dir():
         raise ValueError("No mmshare build found")
     return path[0]
 
+
 def _get_repo_path(repo):
     return os.path.join(SCHRODINGER_SRC, repo)
+
 
 def _is_valid_repo(repo):
     full_path = os.path.join(SCHRODINGER_SRC, repo)
@@ -145,4 +158,5 @@ def __main__():
 
 
 if __name__ == '__main__':
+    _verify_environment()
     __main__()
