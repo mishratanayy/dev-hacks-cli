@@ -16,7 +16,8 @@ BUILD_TYPE = os.getenv("BUILD_TYPE")
 WAFBUILD = f"waf configure build install --build={BUILD_TYPE}"
 MMSHARE_SRC_PATH = os.path.join(SCHRODINGER_SRC, MMSHARE)
 MAESTRO_SRC_PATH = os.path.join(SCHRODINGER_SRC, MAESTRO_SRC)
-
+GIT_PULL_CMD = "git pull --rebase --autostash"
+SCRIPT_DIR = os.path.dirname(__file__)
 
 def _verify_environment():
     if not SCHRODINGER:
@@ -38,6 +39,32 @@ def cd_dir(new_dir):
     finally:
         os.chdir(old_dir)
 
+
+@contextlib.contextmanager
+def cache_ssh_password():
+    print("Starting ssh-agent..")
+    proc = subprocess.Popen(['ssh-agent'], stdout=subprocess.PIPE)
+    output = proc.communicate()[0].decode('utf-8')
+    print(output.splitlines())
+    # Split string into two strings based on = sign
+    main_output = []
+    print(len(output.splitlines()))
+    for line in output.splitlines():
+        if "=" in line:
+            main_output.append(line)
+    #
+    print("SSH Agent details: ", main_output)
+    #print("SSH Agent details: ", env_vars)
+    # for key, value in env_vars.items():
+    #     os.environ[key] = value.strip()
+    # subprocess.call(['ssh-add',"-t","100", '/Users/mishra/.ssh/id_rsa'])
+    # subprocess.call("ssh-add -l".split()) 
+    # try:
+    #     yield
+    # finally:
+    #     print("Exiting ssh-agent")
+    #     subprocess.call("ssh-agent -k".split())
+    yield
 
 def get_mmshare_build_dir():
     mmshare_build_exp = os.path.join(SCHRODINGER, "mmshare-v*")
@@ -115,6 +142,13 @@ def build_mmshare_without_make():
         build_cmd = WAFBUILD + " --skipmakesteps"
         subprocess.call(build_cmd, env=os.environ, shell=True)
 
+def clone_and_build_maestro():
+    print("Cloning mmshare, as maestro-src depends on it")
+    with cache_ssh_password():
+        for repo in [MMSHARE_SRC_PATH, MAESTRO_SRC_PATH]:
+            with cd_dir(repo):
+                print(f"Pulling latest changes for {repo}")
+                subprocess.call(GIT_PULL_CMD.split())
 
 def __main__():
     parser = ArgumentParser(
@@ -143,6 +177,10 @@ def __main__():
                         help="Build mmshare without makesteps",
                         action="store_true",
                         default=False)
+    parser.add_argument("--clone-and-build-maestro",
+                        help="Clone and build maestro",
+                        action="store_true",
+                        default=False)
     args = parser.parse_args()
     if args.format:
         format_files_from_repo(repo=args.format[0],
@@ -156,6 +194,9 @@ def __main__():
 
     if args.build_maestro_only:
         build_maestro_without_test()
+
+    if args.clone_and_build_maestro:
+        clone_and_build_maestro()
 
 
 if __name__ == '__main__':
