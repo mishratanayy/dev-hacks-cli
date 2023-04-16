@@ -126,11 +126,12 @@ def run_test(test_path, count):
     count = int(count)
     if count < 1:
         raise ValueError("Count should be greater than 0")
+    output_file = os.path.join(SCHRODINGER, "test_output.log")
+    if os.path.exists(output_file):
+        os.remove(output_file)
+    print(f"Running tests in parallel {test_path} , {count} times")
     if os.path.exists(test_path):
-        output_file = os.path.join(SCHRODINGER, "test_output.log")
         test_run_cmd = [PYTEST, "-n", "auto", test_path]
-        if os.path.exists(output_file):
-            os.remove(output_file)
         print(f"Writing results to {output_file}")
         with open(output_file, "w") as f:
             f.write(f"Test output for : {test_path} \n")
@@ -140,7 +141,7 @@ def run_test(test_path, count):
                     print("Test failed in one of the runs, "
                           "stopping further executions")
                     return
-    # Check subprocess exit status
+        print("Test ran successfully every time")
 
 
 def __main__():
