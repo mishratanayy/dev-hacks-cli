@@ -18,6 +18,8 @@ MMSHARE_SRC_PATH = os.path.join(SCHRODINGER_SRC, MMSHARE)
 MAESTRO_SRC_PATH = os.path.join(SCHRODINGER_SRC, MAESTRO_SRC)
 GIT_PULL_CMD = "git pull --rebase --autostash"
 SCRIPT_DIR = os.path.dirname(__file__)
+PYTEST = os.path.join(SCHRODINGER, "utilities", "py.test")
+
 
 def _verify_environment():
     if not SCHRODINGER:
@@ -26,8 +28,8 @@ def _verify_environment():
         raise RuntimeError("$SCHRODINGER_SRC not defined")
     if not BUILD_TYPE or BUILD_TYPE not in ['debug', 'optimzed']:
         raise RuntimeError(
-            "$BUILD_TYPE not defined, it should be set to 'debug' or 'optimized'"
-        )
+            "$BUILD_TYPE not defined, it should be set to 'debug'"
+            "or 'optimized'")
 
 
 @contextlib.contextmanager
@@ -39,32 +41,6 @@ def cd_dir(new_dir):
     finally:
         os.chdir(old_dir)
 
-
-@contextlib.contextmanager
-def cache_ssh_password():
-    print("Starting ssh-agent..")
-    proc = subprocess.Popen(['ssh-agent'], stdout=subprocess.PIPE)
-    output = proc.communicate()[0].decode('utf-8')
-    print(output.splitlines())
-    # Split string into two strings based on = sign
-    main_output = []
-    print(len(output.splitlines()))
-    for line in output.splitlines():
-        if "=" in line:
-            main_output.append(line)
-    #
-    print("SSH Agent details: ", main_output)
-    #print("SSH Agent details: ", env_vars)
-    # for key, value in env_vars.items():
-    #     os.environ[key] = value.strip()
-    # subprocess.call(['ssh-add',"-t","100", '/Users/mishra/.ssh/id_rsa'])
-    # subprocess.call("ssh-add -l".split()) 
-    # try:
-    #     yield
-    # finally:
-    #     print("Exiting ssh-agent")
-    #     subprocess.call("ssh-agent -k".split())
-    yield
 
 def get_mmshare_build_dir():
     mmshare_build_exp = os.path.join(SCHRODINGER, "mmshare-v*")
@@ -104,10 +80,12 @@ def _is_yapf_supported(file):
 def format_files_from_repo(repo, diff_generator="HEAD"):
     modified_files = _get_modified_files(repo, diff_generator=diff_generator)
     yapf_supported_files = [
-        file for file in modified_files if _is_yapf_supported(file)
+        file for file in modified_files
+        if _is_yapf_supported(file) and os.path.isfile(file)
     ]
     clang_supported_files = [
-        file for file in modified_files if _is_clang_supported(file)
+        file for file in modified_files
+        if _is_clang_supported(file) and os.path.isfile(file)
     ]
     with cd_dir(_get_repo_path(repo)):
         if yapf_supported_files:
@@ -142,13 +120,28 @@ def build_mmshare_without_make():
         build_cmd = WAFBUILD + " --skipmakesteps"
         subprocess.call(build_cmd, env=os.environ, shell=True)
 
-def clone_and_build_maestro():
-    print("Cloning mmshare, as maestro-src depends on it")
-    with cache_ssh_password():
-        for repo in [MMSHARE_SRC_PATH, MAESTRO_SRC_PATH]:
-            with cd_dir(repo):
-                print(f"Pulling latest changes for {repo}")
-                subprocess.call(GIT_PULL_CMD.split())
+
+def run_test(test_path, count):
+    # convert count to integer if possible
+    count = int(count)
+    if count < 1:
+        raise ValueError("Count should be greater than 0")
+    if os.path.exists(test_path):
+        output_file = os.path.join(SCHRODINGER, "test_output.log")
+        test_run_cmd = [PYTEST, "-n", "auto", test_path]
+        if os.path.exists(output_file):
+            os.remove(output_file)
+        print(f"Writing results to {output_file}")
+        with open(output_file, "w") as f:
+            f.write(f"Test output for : {test_path} \n")
+            f.write(f"Test ran for {count} times")
+            for i in range(count):
+                if subprocess.call(test_run_cmd, stdout=f, stderr=f) != 0:
+                    print("Test failed in one of the runs, "
+                          "stopping further executions")
+                    return
+    # Check subprocess exit status
+
 
 def __main__():
     parser = ArgumentParser(
@@ -177,13 +170,13 @@ def __main__():
                         help="Build mmshare without makesteps",
                         action="store_true",
                         default=False)
-    parser.add_argument("--clone-and-build-maestro",
-                        help="Clone and build maestro",
-                        action="store_true",
-                        default=False)
+    parser.add_argument("--run-test",
+                        "-rt",
+                        help="Run test X number of times passed as argument",
+                        nargs=2)
     args = parser.parse_args()
     if args.format:
-        format_files_from_repo(repo=args.format[0],
+        format_files_from_repo(test_path=args.format[0],
                                diff_generator=args.format[1])
 
     if args.build_mmshare_python:
@@ -195,8 +188,8 @@ def __main__():
     if args.build_maestro_only:
         build_maestro_without_test()
 
-    if args.clone_and_build_maestro:
-        clone_and_build_maestro()
+    if args.run_test:
+        run_test(args.run_test[0], args.run_test[1])
 
 
 if __name__ == '__main__':
