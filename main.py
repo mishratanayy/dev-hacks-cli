@@ -177,7 +177,7 @@ def __main__():
                         nargs=2)
     args = parser.parse_args()
     if args.format:
-        format_files_from_repo(test_path=args.format[0],
+        format_files_from_repo(repo=args.format[0],
                                diff_generator=args.format[1])
 
     if args.build_mmshare_python:
