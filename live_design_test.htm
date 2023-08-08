@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Run Maestro from Live Design</title>
+</head>
+
+<body>
+    <h1>Enter Live design attachment ID and session id to import attachment in Maestro.</h1>
+
+    <form>
+        <input type="text" id="attachment_id" name="attachment_id" placeholder="Enter LD attachment ID">
+        <input type="password" id="session_id" name="session_id" placeholder="Enter session id to authenticate">
+    </form>
+
+    <script>
+        var URL = "https://qa-demo-23-2.dev.bb.schrodinger.com"
+
+        function redirect() {
+            var attachment_id = document.getElementById("attachment_id").value
+            var session_id = document.getElementById("session_id").value
+            json_request = {
+                "attachment_id": attachment_id,
+                "session_id": session_id,
+                "url": URL
+            }
+            request = JSON.stringify(json_request)
+            const encoded_url = encodeURI(request)
+            const final_request = "maestro://" + encoded_url
+            console.log(final_request)
+            window.location.href = final_request
+
+        }
+    </script>
+
+    <button onclick="redirect()">Open in Maestro.</button>
+</body>
+
+</html>

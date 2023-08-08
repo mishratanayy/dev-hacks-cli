@@ -144,6 +144,8 @@ def run_test(test_path, count):
         print("Test ran successfully every time")
 
 
+def __show_ticket_info():
+    line_number
 def __main__():
     parser = ArgumentParser(
         prog="best_script.py",
