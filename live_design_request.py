@@ -1,7 +1,7 @@
 import json
 import urllib
 
-session_id = "node0srrm0tfns67e6dfccf8tzyus2411.node0"
+session_id = ""
 url = "https://qa-demo-23-2.dev.bb.schrodinger.com"
 attachment_ids = [
     "64044694-36cd-4b2a-b028-da1137257dc1",
