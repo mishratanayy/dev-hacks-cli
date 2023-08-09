@@ -20,7 +20,7 @@
             var attachment_id = document.getElementById("attachment_id").value
             var session_id = document.getElementById("session_id").value
             json_request = {
-                "attachment_id": attachment_id,
+                "attachment_ids": [attachment_id],
                 "session_id": session_id,
                 "url": URL
             }
