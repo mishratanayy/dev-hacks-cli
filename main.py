@@ -104,7 +104,7 @@ class Builder:
     def buildMMSharePython(self):
         mmshare_build_dir = self._get_mmshare_build_dir()
         python_build_dir = os.path.join(mmshare_build_dir, "python")
-        make_install = "make install"
+        make_install = ["make","install"]
         run_cmd(make_install, cwd=python_build_dir)
         python_test_dir = os.path.join(mmshare_build_dir, "python", "test")
         run_cmd(make_install, cwd=python_test_dir)
