@@ -1,23 +1,28 @@
 import json
 import urllib
+import os
 
-session_id = ""
-url = "https://qa-demo-23-2.dev.bb.schrodinger.com"
-attachment_ids = [
-    "64044694-36cd-4b2a-b028-da1137257dc1",
-    "64044694-36cd-4b2a-b028-da1137257dc1"
-]
-
+url = "https://qa-demo-23-3.dev.bb.schrodinger.com"
+live_report_id = "110505"
+column_ids = ["18592","6"]
+row_keys = ["CMPD-10460","CMPD-10468"]
+report_level = "parent"
 
 def print_json():
     json_dict = {}
-    json_dict['session_id'] = session_id
     json_dict['url'] = url
-    json_dict['attachment_ids'] = attachment_ids
+    json_dict['live_report_id'] = live_report_id
+    json_dict['column_ids'] = column_ids
+    json_dict['row_keys'] = row_keys
+    json_dict['report_level'] = report_level
+    json_dict['user'] = "testuser1"
     json_object = json.dumps(json_dict)
     uri_encoded = urllib.parse.quote(json_object)
     final_request = f"maestro://{uri_encoded}"
-    print(final_request)
+    SCHRODINGER = os.getenv("SCHRODINGER")
+    CMDS = [f"{SCHRODINGER}/maestro", "-console","-o",final_request]
+    print(" ".join(CMDS))
+
 
 
 if __name__ == '__main__':

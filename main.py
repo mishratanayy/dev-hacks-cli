@@ -27,7 +27,11 @@ PYTEST_CMD = os.path.join(SCHRODINGER, "utilities", "py.test")
 def run_cmd(cmd, cwd=os.getcwd()):
     try:
         logging.info(f"Command: {cmd} , inside directory: {cwd}")
-        subprocess.call(cmd, cwd=cwd)
+        output = subprocess.run(cmd, cwd=cwd , capture_output=True)
+        if stderr:= output.stderr:
+            print("--------------------")
+            logging.error(str(stderr))
+            print("--------------------")
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f"Command {cmd} failed with error {e}")
 
@@ -103,11 +107,9 @@ class Builder:
 
     def buildMMSharePython(self):
         mmshare_build_dir = self._get_mmshare_build_dir()
-        python_build_dir = os.path.join(mmshare_build_dir, "python")
-        make_install = ["make","install"]
-        run_cmd(make_install, cwd=python_build_dir)
-        python_test_dir = os.path.join(mmshare_build_dir, "python", "test")
-        run_cmd(make_install, cwd=python_test_dir)
+        make_py = ["make","python"]
+        run_cmd(make_py, cwd=mmshare_build_dir)
+        logger.info("Done!")
 
     def buildMMShareWithoutMakeSteps(self):
         cmd = WAF_CMD + ' --skipmakesteps'
