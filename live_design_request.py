@@ -2,7 +2,7 @@ import json
 import urllib
 import os
 
-url = "https://qa-demo-23-3.dev.bb.schrodinger.com"
+url = "https://qa-demo-24-2.dev.bb.schrodinger.com"
 live_report_id = "118269"
 column_ids = ["18592","6"]
 row_keys = ["CMPD-13670"]
