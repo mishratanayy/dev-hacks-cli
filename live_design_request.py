@@ -3,9 +3,9 @@ import urllib
 import os
 
 url = "https://qa-demo-23-3.dev.bb.schrodinger.com"
-live_report_id = "110505"
+live_report_id = "118269"
 column_ids = ["18592","6"]
-row_keys = ["CMPD-10460","CMPD-10468"]
+row_keys = ["CMPD-13670"]
 report_level = "parent"
 
 def print_json():
