@@ -3,11 +3,19 @@ import logging
 import platform
 import csv
 import re
+import sys
 from collections import defaultdict
 import subprocess
+import glob
 
 INPUT_DIR = os.getenv("SCHRODINGER_PERFORMANCE_TEST_INPUT")
-OUTPUT_DIR = os.path.join(os.getenv("SCHRODINGER"), "performance_logs")
+OUTPUT_DIR = os.getenv("SCHRODINGER_PERFORMANCE_TEST_OUTPUT")
+
+
+def get_csv_name_by_os(name):
+    name += "_" + sys.platform.lower()
+    name += ".csv"
+    return name
 
 
 def get_input_files():
@@ -23,8 +31,13 @@ def get_input_files():
 def prepare_cmd_string(input_files):
     cmd_string = ""
     for file in input_files:
+        output_log_file = os.path.join(OUTPUT_DIR,
+                                       os.path.basename(file) + ".log")
         cmd_string += "projectclose\n"
+        cmd_string += f"timingsetup file={output_log_file}\n"
+        cmd_string += "timingstart\n"
         cmd_string += f"entryimport {file}\n"
+        cmd_string += "timingstop\n"
     cmd_string += "quit confirm=no\n"
     cmd_string += "quit"
     return cmd_string
@@ -95,18 +108,79 @@ def perform_cleanup(directory):
     logging.info("Cleanup done")
 
 
+def write_graphics_output_to_csv(input_files, output_file):
+    """
+    Parses multiple input files to create a structured CSV with activities as headers and their corresponding 'Time (s)' values.
+    
+    Args:
+        input_files (list of tuples): A list where each tuple contains the path to the input text file and the associated filename.
+        output_file (str): The path to the output CSV file.
+    """
+    activities = [
+        "Main Drawing", "Onscreen Drawing", "Drawing Setup",
+        "Structure Drawing", "Python Drawing", "Overlay Drawing",
+        "Command Handling", "Regenerate DGOs", "Regenerate main CT"
+    ]
+
+    with open(output_file, 'w', newline='') as outfile:
+        writer = csv.writer(outfile)
+        # Write the header row once
+        writer.writerow(["Filename"] + activities)
+
+        for input_file, filename in input_files:
+            # Initialize a dictionary to hold Time (s) values for each activity
+            activity_times = {activity: "000.000" for activity in activities}
+
+            with open(input_file, 'r') as infile:
+                lines = infile.readlines()
+
+                for line in lines:
+                    clean_line = line.strip().replace('"', '').strip()
+                    if clean_line and not clean_line.startswith(
+                            "Timing") and not clean_line.startswith("Period"):
+                        parts = clean_line.split('\t')
+                        if len(parts) >= 2:
+                            activity = parts[0].strip()
+                            time_value = parts[1].strip().replace(
+                                "\t", "")  # Remove additional tabs
+                            if activity in activity_times:
+                                activity_times[activity] = time_value
+
+            # Write the row with the filename and activity times
+            writer.writerow(
+                [filename] +
+                [activity_times[activity] for activity in activities])
+
+
+def process_graphics_output_in_directory(directory, output_file):
+    logging.info("Processing graphics output in directory: " + directory)
+    input_files = glob.glob(os.path.join(directory, "*.log"))
+    input_data = []
+    for file in input_files:
+        input_data.append((file, os.path.basename(file).split(".")[0]))
+    logging.info("Processing output files for input: " + str(input_data))
+    write_graphics_output_to_csv(input_data, output_file)
+
+
 def main():
     perform_cleanup(OUTPUT_DIR)
     input_files = get_input_files()
     logging.info(f"input_files: {input_files}")
     cmd_string = prepare_cmd_string(input_files)
     run_maestro(cmd_string)
-    process_files_in_directory(OUTPUT_DIR,
-                               os.path.join(OUTPUT_DIR, "output_metrics.csv"))
+    process_files_in_directory(
+        OUTPUT_DIR,
+        os.path.join(OUTPUT_DIR,
+                     get_csv_name_by_os("output_command_performance")))
+    process_graphics_output_in_directory(
+        OUTPUT_DIR,
+        os.path.join(OUTPUT_DIR,
+                     get_csv_name_by_os("output_graphics_performance")))
 
 
 def verify_setup():
-    env_vars = ("SCHRODINGER", "SCHRODINGER_PERFORMANCE_TEST_INPUT")
+    env_vars = ("SCHRODINGER", "SCHRODINGER_PERFORMANCE_TEST_INPUT",
+                "SCHRODINGER_PERFORMANCE_TEST_OUTPUT")
     for var in env_vars:
         if not os.getenv(var, None):
             logging.error(f"Environment variable {var} is not set")
@@ -115,6 +189,8 @@ def verify_setup():
     print("SCHRODINGER:", os.getenv("SCHRODINGER", None))
     print("SCHRODINGER_PERFORMANCE_TEST_INPUT:",
           os.getenv("SCHRODINGER_PERFORMANCE_TEST_INPUT", None))
+    print("SCHRODINGER_PERFORMANCE_TEST_OUTPUT:",
+          os.getenv("SCHRODINGER_PERFORMANCE_TEST_OUTPUT", None))
 
 
 if __name__ == '__main__':
