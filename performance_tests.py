@@ -7,6 +7,7 @@ import sys
 from collections import defaultdict
 import subprocess
 import glob
+import shutil
 
 INPUT_DIR = os.getenv("SCHRODINGER_PERFORMANCE_TEST_INPUT")
 OUTPUT_DIR = os.getenv("SCHRODINGER_PERFORMANCE_TEST_OUTPUT")
@@ -18,13 +19,16 @@ def get_csv_name_by_os(name):
     return name
 
 
+SUPPORTED_EXTENSIONS = (".mae", ".maegz", ".mae.gz", ".sd", ".sdf", ".pdb")
+
+
 def get_input_files():
     input_files = []
     logging.info("Getting input files inside directory: " + INPUT_DIR)
     for files in os.listdir(INPUT_DIR):
-        if files.endswith(".mae") or files.endswith(
-                ".maegz") or files.endswith(".mae.gz"):
+        if files.endswith(SUPPORTED_EXTENSIONS):
             input_files.append(os.path.join(INPUT_DIR, files))
+    logging.info(f"Input files found: {input_files}")
     return input_files
 
 
@@ -34,9 +38,10 @@ def prepare_cmd_string(input_files):
         output_log_file = os.path.join(OUTPUT_DIR,
                                        os.path.basename(file) + ".log")
         cmd_string += "projectclose\n"
+        cmd_string += f"entryimport {file} wsreplace=false wsinclude=none\n"
         cmd_string += f"timingsetup file={output_log_file}\n"
         cmd_string += "timingstart\n"
-        cmd_string += f"entryimport {file}\n"
+        cmd_string += "entrywsinclude all\n"
         cmd_string += "timingstop\n"
     cmd_string += "quit confirm=no\n"
     cmd_string += "quit"
@@ -54,13 +59,14 @@ def run_maestro(cmd_string):
     temp_file = "cmd_file.cmd"
     with open(temp_file, "w") as f:
         f.write(cmd_string)
+    logging.info("Command file created", temp_file)
     args.append("-c")
     args.append(os.path.join(os.getcwd(), temp_file))
     logging.info(f"Running {maestro_executable} {args}")
     subprocess.run([maestro_executable] + args)
     logging.info("Maestro run completed")
     os.remove(temp_file)
-    logging.info("Removing temporary file")
+    logging.info("Removing temporary command file")
 
 
 def process_files_in_directory(directory_path, output_csv):
@@ -82,7 +88,9 @@ def process_files_in_directory(directory_path, output_csv):
                     if match:
                         function_name = match.group(1)
                         value = int(match.group(2))
-                        data[file_name][function_name] = value
+                        if data[file_name].get(function_name) is None:
+                            data[file_name][function_name] = 0
+                        data[file_name][function_name] += value
                         all_functions.add(function_name)
 
     # Convert the collected data into a CSV file
@@ -97,15 +105,15 @@ def process_files_in_directory(directory_path, output_csv):
                 row[function] = functions.get(function, "")
             writer.writerow(row)
 
-    print(f"CSV file '{output_csv}' created successfully.")
+    logging.info(f"CSV file '{output_csv}' created successfully.")
 
 
 def perform_cleanup(directory):
     logging.info("Performing cleanup in directory: " + directory)
-    if os.path.exists(directory):
-        for file in os.listdir(directory):
-            os.remove(os.path.join(directory, file))
-    logging.info("Cleanup done")
+
+    shutil.rmtree(directory, ignore_errors=True)
+    os.makedirs(directory)
+    logging.info("Cleanup completed.")
 
 
 def write_graphics_output_to_csv(input_files, output_file):
@@ -158,8 +166,8 @@ def process_graphics_output_in_directory(directory, output_file):
     input_data = []
     for file in input_files:
         input_data.append((file, os.path.basename(file).split(".")[0]))
-    logging.info("Processing output files for input: " + str(input_data))
     write_graphics_output_to_csv(input_data, output_file)
+    logging.info("Graphics output processed successfully at : " + output_file)
 
 
 def main():
@@ -169,7 +177,7 @@ def main():
     cmd_string = prepare_cmd_string(input_files)
     run_maestro(cmd_string)
     process_files_in_directory(
-        OUTPUT_DIR,
+        os.path.join(OUTPUT_DIR, "performance_logs"),
         os.path.join(OUTPUT_DIR,
                      get_csv_name_by_os("output_command_performance")))
     process_graphics_output_in_directory(
