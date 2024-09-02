@@ -48,6 +48,13 @@ def prepare_cmd_string_python_function(input_files):
     cmd_string += "quit"
     return cmd_string
 
+def add_surface_command_if_required(file):
+    cmd=""
+    if "surface" in file:
+        cmd += 'workspaceselectionreplacenoundo all\n'
+        cmd += 'wsassistantcreatequicksurfaces "at.selected" structuresource=workspace\n'
+    return cmd
+
 
 def prepare_cmd_string(input_files):
     cmd_string = ""
@@ -56,6 +63,7 @@ def prepare_cmd_string(input_files):
                                        os.path.basename(file) + ".log")
         cmd_string += "projectclose\n"
         cmd_string += f"entryimport {file} wsreplace=false wsinclude=none\n"
+        cmd_string += add_surface_command_if_required(file)
         cmd_string += f"timingsetup file={output_log_file}\n"
         cmd_string += "timingstart\n"
         cmd_string += "entrywsinclude all\n"
