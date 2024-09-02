@@ -59,8 +59,8 @@ def prepare_cmd_string(input_files):
         cmd_string += f"timingsetup file={output_log_file}\n"
         cmd_string += "timingstart\n"
         cmd_string += "entrywsinclude all\n"
-        cmd_string += "timingstop\n"
         cmd_string += "\n\n"
+        cmd_string += "timingstop\n"
     cmd_string += "quit"
     return cmd_string
 
