@@ -88,6 +88,30 @@ def run_maestro(cmd_string):
     logging.info("Removing temporary command file")
 
 
+def parse_time_entry(entry):
+    # Split the string on the first occurrence of '='
+    parts = entry.split('=', 1)
+
+    if len(parts) != 2:
+        return None  # Return None if the format is incorrect
+
+    # Trim the left and right parts
+    left_part = parts[0].strip()
+    right_part = parts[1].strip()
+
+    # Extract the time value and ensure it ends with 'ms'
+    if right_part.endswith('ms'):
+        try:
+            time_value = int(right_part[:-2].strip())
+        except ValueError:
+            return None  # Handle conversion error
+
+        return left_part, time_value
+
+    return None
+
+
+
 def process_files_in_directory(directory_path, output_csv):
     # Dictionary to hold the data, with filenames as keys
     data = defaultdict(dict)
@@ -100,17 +124,15 @@ def process_files_in_directory(directory_path, output_csv):
             logging.info(f"Processing file: {file_path}")
             with open(file_path, 'r') as file:
                 lines = file.readlines()
-
                 file_name = lines[0].strip().strip('"')
                 for line in lines[1:]:
-                    match = re.match(r"(\w+)\s*=\s*(\d+)\s*ms", line.strip())
-                    if match:
-                        function_name = match.group(1)
-                        value = int(match.group(2))
+                    function_name , value = parse_time_entry(line)
+                    if function_name is not None:
                         if data[file_name].get(function_name) is None:
                             data[file_name][function_name] = 0
                         data[file_name][function_name] += value
                         all_functions.add(function_name)
+                        
 
     # Convert the collected data into a CSV file
     with open(output_csv, 'w', newline='') as csvfile:
