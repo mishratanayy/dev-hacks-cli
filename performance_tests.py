@@ -32,6 +32,23 @@ def get_input_files():
     return input_files
 
 
+def prepare_cmd_string_python_function(input_files):
+    cmd_string = ""
+    for file in input_files:
+        output_log_file = os.path.join(OUTPUT_DIR,
+                                       os.path.basename(file) + ".log")
+        cmd_string += "maestro.command('projectclose')\n"
+        cmd_string += f"maestro.command('entryimport {file} wsreplace=false wsinclude=none')\n"
+        cmd_string += f"maestro.command('timingsetup file={output_log_file}')\n"
+        cmd_string += "maestro.command('timingstart')\n"
+        cmd_string += "maestro.command('entrywsinclude all')\n"
+        cmd_string += "maestro.process_pending_events()\n"
+        cmd_string += "maestro.command('timingstop')\n"
+        cmd_string += "maestro.command('quit confirm=no')\n"
+    cmd_string += "quit"
+    return cmd_string
+
+
 def prepare_cmd_string(input_files):
     cmd_string = ""
     for file in input_files:
@@ -43,7 +60,7 @@ def prepare_cmd_string(input_files):
         cmd_string += "timingstart\n"
         cmd_string += "entrywsinclude all\n"
         cmd_string += "timingstop\n"
-    cmd_string += "quit confirm=no\n"
+        cmd_string += "\n\n"
     cmd_string += "quit"
     return cmd_string
 
@@ -56,12 +73,14 @@ def run_maestro(cmd_string):
         args.append("-console")
     elif platform.system() == "Linux":
         args.append("-SGL")
-    temp_file = "cmd_file.cmd"
+    temp_file = os.path.join(OUTPUT_DIR, "cmd_file.cmd")
     with open(temp_file, "w") as f:
         f.write(cmd_string)
-    logging.info("Command file created", temp_file)
-    args.append("-c")
-    args.append(os.path.join(os.getcwd(), temp_file))
+
+
+#logging.info("Command file created", temp_file)
+# args.append("-c")
+# args.append(temp_file)
     logging.info(f"Running {maestro_executable} {args}")
     subprocess.run([maestro_executable] + args)
     logging.info("Maestro run completed")
@@ -165,7 +184,7 @@ def process_graphics_output_in_directory(directory, output_file):
     input_files = glob.glob(os.path.join(directory, "*.log"))
     input_data = []
     for file in input_files:
-        input_data.append((file, os.path.basename(file).split(".")[0]))
+        input_data.append((file, os.path.basename(file)))
     write_graphics_output_to_csv(input_data, output_file)
     logging.info("Graphics output processed successfully at : " + output_file)
 
@@ -176,6 +195,7 @@ def main():
     logging.info(f"input_files: {input_files}")
     cmd_string = prepare_cmd_string(input_files)
     run_maestro(cmd_string)
+
     process_files_in_directory(
         os.path.join(OUTPUT_DIR, "performance_logs"),
         os.path.join(OUTPUT_DIR,
