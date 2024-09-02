@@ -19,14 +19,14 @@ def get_csv_name_by_os(name):
     return name
 
 
-SUPPORTED_EXTENSIONS = (".mae", ".maegz", ".mae.gz", ".sd", ".sdf", ".pdb")
-
+FILE_SUPPORTED_EXTENSIONS = (".mae", ".maegz", ".mae.gz", ".sd", ".sdf", ".pdb")
+PROJECT_SUPPORTED_EXTENSION = (".prj",".prjzip",".prj.zip")
 
 def get_input_files():
     input_files = []
     logging.info("Getting input files inside directory: " + INPUT_DIR)
     for files in os.listdir(INPUT_DIR):
-        if files.endswith(SUPPORTED_EXTENSIONS):
+        if files.endswith(FILE_SUPPORTED_EXTENSIONS) or files.endswith(PROJECT_SUPPORTED_EXTENSION):
             input_files.append(os.path.join(INPUT_DIR, files))
     logging.info(f"Input files found: {input_files}")
     return input_files
@@ -48,13 +48,11 @@ def prepare_cmd_string_python_function(input_files):
     cmd_string += "quit"
     return cmd_string
 
-def add_surface_command_if_required(file):
-    cmd=""
-    if "surface" in file:
-        cmd += 'workspaceselectionreplacenoundo all\n'
-        cmd += 'wsassistantcreatequicksurfaces "at.selected" structuresource=workspace\n'
-    return cmd
-
+def file_or_project_open(file_path):
+    if file_path.endswith(FILE_SUPPORTED_EXTENSIONS):
+        return f"entryimport {file_path} wsreplace=false wsinclude=none\n"
+    else:
+        return f"projectopen {file_path}\n"
 
 def prepare_cmd_string(input_files):
     cmd_string = ""
@@ -62,8 +60,7 @@ def prepare_cmd_string(input_files):
         output_log_file = os.path.join(OUTPUT_DIR,
                                        os.path.basename(file) + ".log")
         cmd_string += "projectclose\n"
-        cmd_string += f"entryimport {file} wsreplace=false wsinclude=none\n"
-        cmd_string += add_surface_command_if_required(file)
+        cmd_string += file_or_project_open(file)
         cmd_string += f"timingsetup file={output_log_file}\n"
         cmd_string += "timingstart\n"
         cmd_string += "entrywsinclude all\n"
